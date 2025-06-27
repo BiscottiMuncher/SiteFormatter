@@ -7,11 +7,19 @@ import re, sys
 ## Takes in a line and formatCode, formatcode is meant for HTML formatting purposes
 def formatter(line, formatCode):
     if formatCode == "a":
-            return f'\t<a href="{line}">{line}</a>'
+        return f'\t<a href="{line}">{line}</a>'
     elif formatCode == "m":
-            return f"\t<img src={line}></img>"
+        return f"\t<img src={line}></img>"
     else:
         return f"\t<{formatCode}>{line}</{formatCode}>"
+
+## Cleans Up HTML, arrows and things were actually rendering on the site
+def cleanHtml(line):
+    return (line
+        .replace("&", "&amp;")
+        .replace("<", "&lt;")
+        .replace(">", "&gt;")
+        .replace('"', "&quot;"))
 
 ## Parses The lines and matches them to case
 def parser(line):
@@ -41,8 +49,16 @@ f"""<h1>{line[3:]}
         writeOut(formatter(line[3:], "ul"))
     if re.search(r"^/l\s", line):         # /l (ordered list)
         writeOut(formatter(line[3:], "li"))
-    if re.search(r"^/bk\s", line):        # /bk (custom dash seperated line breaks, takes in amount from space left of call)
-        writeOut(f"<p>{line[4] * int(line[6:])}</p>")
+    if re.search(r"^/bk\s", line):        # /bk _ 100 (custom dash seperated line breaks, takes in amount from space left of call)
+        writeOut(f"\t<p>{line[4] * int(line[6:])}</p>")
+    if re.search(r"^/cs\b", line):         # /cs (code block Start)
+        writeOut('<div class="codeBlock"><pre>')     
+    if re.search(r"^/c\s", line):         # /c (code block)
+        clean = cleanHtml(line[3:])
+        writeOut(f"{clean}")    
+    if re.search(r"^/ce\b", line):         # /ce (code block End)
+        writeOut("</pre></div>")
+
 
 
 ## Writes output to file
@@ -55,7 +71,9 @@ def writeOut(input):
 # Messy mess of messing, takes in sysarg 1 as input for file
 with open(sys.argv[1]) as ingest:
     writeOut(f'<html>')
+    writeOut(f'<head>')
     writeOut(f'<link rel="stylesheet" href="/styles.css">')
+    writeOut(f'</head>')
     writeOut(f'<body>')
     for line in ingest:
         line = line.strip()
